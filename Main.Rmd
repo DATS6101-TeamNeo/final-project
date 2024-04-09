@@ -1,0 +1,47 @@
+---
+title: "Effect of Major Historical Events on S&P500 Index"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r init, include=FALSE}
+# Load all required packagess
+library(dplyr)
+library(ggplot2)
+library(ezids)
+library(lubridate)
+library(corrplot)
+knitr::opts_chunk$set(warning = F, results = "markup", message = F)
+options(scientific=T, digits = 3) 
+library(rvest)
+library(tidyverse)
+library(quantmod)
+```
+
+
+
+# Team Neo Midterm Project
+
+Terminology in Trading
+
++ "open" - The opening price for the specified date(s).
++ "close" - The closing price for the specified date(s).
++ "high" - The high price for the specified date(s).
++ "low" - The low price for the specified date(s).
++ "volume" - The volume for the specified date(s).
++ "change" - The price change since the previous trading weekly close.
+             (For monthly take previous trading month’s close and for daily take previous
+             trading day’s close.)
+
+
+***Need to add description here, based on how we plan to conclude this project*** 
+
