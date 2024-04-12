@@ -1,0 +1,84 @@
+---
+title: "Generate S&P 500 Index Data with Industries data"
+output: html_document
+date: "2024-04-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = F, results = "markup", message = F)
+```
+
+[Link](https://www.kaggle.com/code/prudhvirajuchekuri/ids-sandp500-final) for the Python Implementation (Faster Execution) 
+
+```{r, include=FALSE}
+# Install and load required packages
+#install.packages("rvest")
+#install.packages("quantmod")
+
+library(rvest)  # for web scraping
+library(dplyr)  # for data manipulation
+library(progress)  # for displaying a progress bar
+library(tidyquant)  # for downloading financial data
+```
+
+```{r}
+
+# Read the HTML table from the Wikipedia page
+wiki_page <- read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+sp500_table <- html_table(wiki_page)[[1]]  # Extract the first table
+
+# Select the desired columns
+sp500_tickers <- sp500_table %>%
+  select(Symbol = `Symbol`, GICS.Sector = `GICS Sector`)
+
+# View the resulting data frame
+head(sp500_tickers)
+```
+
+```{r, include=FALSE}
+start_date <- "2000-01-01"
+end_date <- "2024-04-01"
+
+pb <- progress_bar$new(total = nrow(sp500_tickers))  # Create a progress bar
+data <- list()  # Initialize an empty list
+
+for (ticker in sp500_tickers$Symbol) {
+  tryCatch({
+    data[[ticker]] <- tq_get(ticker, get = "stock.prices", from = start_date, to = end_date)
+    pb$tick()
+  }, warning = function(w) {
+    message(paste("\nWarning fetching data for", ticker))
+    data[[ticker]] <- NULL
+  })
+}
+```
+
+```{r}
+
+pb <- progress_bar$new(total = length(names(data)))
+
+# Create an empty data frame to store the combined data
+sp500_data <- data.frame()
+
+# Iterate over the list of data frames
+for (ticker in names(data)) {
+  # Extract the required columns
+
+  ticker_data <- data[[ticker]][, c("symbol", "date", "open", "high", "low", "close", "volume", "adjusted")]
+  
+  # Combine the data frames
+  sp500_data <- bind_rows(sp500_data, ticker_data)
+  pb$tick()
+}
+```
+
+```{r}
+sp500_data <- sp500_data %>%
+              left_join(sp500_tickers, by = c("symbol" = "Symbol"))
+
+# Save the data to a CSV file
+# write.csv(head(sp500_data), file = "sp500_data_head.csv", row.names = TRUE)
+# write.csv(tail(sp500_data), file = "sp500_data_tail.csv", row.names = TRUE)
+write.csv(sp500_data, file = "sp500_data.csv", row.names = FALSE)
+```
