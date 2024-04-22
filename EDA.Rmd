@@ -1,0 +1,129 @@
+---
+title: "EDA S&P 500 index"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r init, include=FALSE}
+# Load all required packagess
+library(xts)
+library(ezids)
+library(dplyr)
+library(tseries)
+library(ggplot2)
+library(forecast)
+library(corrplot)
+library(lubridate)
+
+knitr::opts_chunk$set(warning = F, results = "markup", message = F)
+options(scientific=T, digits = 3) 
+```
+
+
+```{r}
+datasets.url <- "https://drive.usercontent.google.com/download?id=1BqKbN3FEqNcRXeisOPxR_LB8VcSCh7mE&export=download&authuser=0&confirm=t&uuid=45c71bb8-6935-4427-90bf-7913adc01a46&at=APZUnTWDNvs8sgEbm17VFNbf2ghj:1713821002484"
+df <- read.csv(datasets.url)
+df$Date <- as.Date(df$Date)
+str(df)
+```
+#question-1 find unique values in Symbols column
+```{r}
+length(df$Symbol)
+unique(df$GICS )
+unique(df$Symbol)
+
+```
+
+# 3 count plot for different sectors in industrials
+```{r}
+library(ggplot2)
+ggplot(df, aes(x = GICS)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+The x-axis represents the different sectors within the GICS framework, while the y-axis represents the count of observations within each sector. The bar chart provides a clear visual representation of the distribution of observations across different sectors, allowing for easy comparison and identification of any patterns or trends within the data. categories like "Energy," "Financials," and "Health Care," indicating higher values or counts for these categories compared to others. This information can be useful for further analysis and decision-making.
+
+# sort dataframe by date column
+```{r}
+df <- df[order(df$Date),]
+head(df)
+
+```
+# finding unique values in the Date column and get year from date column
+```{r}
+library(lubridate)
+year <- unique(year(df$Date))
+year
+```
+#plot countplot for each year
+```{r}
+ggplot(df, aes(x = year(df$Date))) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+#plot countplot for each year and sector
+```{r}
+ggplot(df, aes(x = year(df$Date), fill = GICS)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+# plot sum of volume for each year
+```{r}
+ggplot(df, aes(x = year(df$Date), y = Volume)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+# plot sum of volume for each year and sector
+```{r}
+ggplot(df, aes(x = year(df$Date), y = Volume, fill = GICS)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+# sum of volume for each year
+```{r}
+df_sum <- df %>% group_by(year(df$Date)) %>% summarise(sum(Volume))
+df_sum
+```
+
+# sum of volume for each year and sector
+```{r}
+library(dplyr)
+library(lubridate)
+df_sum_grouped <- df %>% group_by(year(df$Date), GICS) %>% summarise(sum(Volume))
+(df_sum_grouped)
+```
+# sort dataframe by close column
+```{r}
+df_ <- df[order(df$Close),]
+head(df_)
+```
+# plot highest closing price for each year for each sector
+```{r}
+ggplot(df, aes(x = year(df$Date), y = Close, color = GICS)) + geom_point() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+# top ten symbols with highest close price each year
+```{r}
+top_ten <- df %>% group_by(year(df$Date)) %>% top_n(10, Close)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

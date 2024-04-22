@@ -31,17 +31,19 @@ library(quantmod)
 
 # Team Neo Midterm Project
 
-Terminology in Trading
+Understanding the dataset
 
++ "symbol" - The stock symbol of the company in the S&P500 Index.
++ "date" - The date of the stock price.
 + "open" - The opening price for the specified date(s).
-+ "close" - The closing price for the specified date(s).
 + "high" - The high price for the specified date(s).
 + "low" - The low price for the specified date(s).
++ "close" - The closing price for the specified date(s).
++ "adjusted" - The adjusted closing price for the specified date(s).
 + "volume" - The volume for the specified date(s).
-+ "change" - The price change since the previous trading weekly close.
++ "GICS.Sector" - The Global Industry Classification Standard (GICS) sector of the company.
+<!-- + "change" - The price change since the previous trading weekly close.
              (For monthly take previous trading month’s close and for daily take previous
-             trading day’s close.)
+             trading day’s close.) -->
 
-
-***Need to add description here, based on how we plan to conclude this project*** 
 
