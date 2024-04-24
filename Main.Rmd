@@ -158,7 +158,8 @@ head(work_df)
 
 ### Check if the time series is Stationary.
 ```{r, include=T, results=T}
-adf.test(work_df$Close)
+# TODO:
+#adf.test(work_df$Close)
 
 # Check the stationarity using the ACF and PACF plots.
 acf(work_df$Close, main = "ACF Plot")
@@ -173,7 +174,8 @@ ts_data <- xts(work_df$Close, order.by = work_df$Date)
 ```
 ADF test for the original time series data.
 ```{r, include=T, results=T}
-adf.test(ts_data)
+# TODO:n
+# adf.test(ts_data)
 
 diff_ts_data <- diff(ts_data, differences = 1)
 
@@ -181,12 +183,14 @@ diff_ts_data <- na.omit(diff_ts_data)
 ```
 ADF test for the differenced time series data.
 ```{r, include=T, results=T}
-adf.test(diff_ts_data)
+# TODO:
+#adf.test(diff_ts_data)
 ```
 
 ```{r, include=T, results=T}
-acf(diff_ts_data, main = "ACF Plot")
-pacf(diff_ts_data, main = "PACF Plot")
+# TODO:
+#acf(diff_ts_data, main = "ACF Plot")
+#pacf(diff_ts_data, main = "PACF Plot")
 ```
 
 # ARIMA model fitting and forecasting
@@ -196,40 +200,40 @@ From the adf test and ACF and PACF plots, we can see that the time series data i
 train_data <- head(diff_ts_data, n = round(0.98 * length(diff_ts_data)))
 test_data <- diff_ts_data[-seq_along(train_data)]
 
-
-arima_model <- auto.arima(train_data)
-
-
-summary(arima_model)
+# TODO:
+# arima_model <- auto.arima(train_data)
 
 
-forecasts <- forecast(arima_model, h = length(test_data))
+# summary(arima_model)
+
+
+# forecasts <- forecast(arima_model, h = length(test_data))
 ```
 
 # Evaluation of the ARIMA model
 ```{r, include=T, results=T}
-
+# TODO: 
 # Convert the forecasts to the original scale.
 last_train_date <- index(tail(train_data, 1))
 last_observed_value <- ts_data[last_train_date]
-actual_preds <- as.vector(last_observed_value) + cumsum(forecasts$mean)
+# actual_preds <- as.vector(last_observed_value) + cumsum(forecasts$mean)
 actual_test <- as.vector(last_observed_value) + cumsum(test_data)
-actual_preds <- xts(actual_preds, order.by = index(actual_test))
+# actual_preds <- xts(actual_preds, order.by = index(actual_test))
 
 # Compute the forecasting errors
-errors <- actual_preds - actual_test
+# errors <- actual_preds - actual_test
 
 # Calculate evaluation metrics
-mae <- mean(abs(errors))
-mse <- mean(errors^2)
-rmse <- sqrt(mse)
+# mae <- mean(abs(errors))
+# mse <- mean(errors^2)
+# rmse <- sqrt(mse)
 ```
 
-Mean Absolute Error (MAE): `r mae`
+Mean Absolute Error (MAE): `#r mae`
 
-Mean Squared Error (MSE): `r mse`
+Mean Squared Error (MSE): `#r mse`
 
-Mean Squared Error (RMSE): `r rmse`
+Mean Squared Error (RMSE): `#r rmse`
 
 # Plots
 ### Plot train and test data.
@@ -249,19 +253,20 @@ actual_train <- ts_data[index(ts_data) > plot_start_date & index(ts_data) <= las
 # Convert the time series data to data frames
 train_df <- data.frame(Date = index(actual_train), Value = coredata(actual_train), Type = "Train data")
 test_df <- data.frame(Date = index(actual_test), Value = coredata(actual_test), Type = "Test data")
-forecast_df <- data.frame(Date = index(actual_preds)[-1], Value = actual_preds[-1], Type = "Forecast")
+# TODO:
+# forecast_df <- data.frame(Date = index(actual_preds)[-1], Value = actual_preds[-1], Type = "Forecast")
 
 # Combine the data frames
-combined_df <- rbind(train_df, test_df, forecast_df)
+# combined_df <- rbind(train_df, test_df, forecast_df)
 
 # Create the plot
-ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
-  geom_line() +
-  labs(title = "Train, Test, and Forecast Data Plot",
-       x = "Date",
-       y = "Closing Price") +
-  scale_color_manual(values = c("red", "orange", "blue")) +
-  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
-  theme_minimal() +
-  theme(legend.position = "right")
+# ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
+  # geom_line() +
+  # labs(title = "Train, Test, and Forecast Data Plot",
+  #      x = "Date",
+  #      y = "Closing Price") +
+  # scale_color_manual(values = c("red", "orange", "blue")) +
+  # scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  # theme_minimal() +
+  # theme(legend.position = "right")
 ```
