@@ -33,8 +33,10 @@ options(scientific=T, digits = 3)
 
 
 
-# Team Neo Midterm Project
+<h1>Team Neo Midterm Project</h1>
 
+
+# Step 0: Understanding the dataset
 
 + "symbol" - The stock symbol of the company in the S&P500 Index.
 + "date" - The date of the stock price.
@@ -45,36 +47,37 @@ options(scientific=T, digits = 3)
 + "adjusted" - The adjusted closing price for the specified date(s).
 + "volume" - The volume for the specified date(s).
 + "GICS.Sector" - The Global Industry Classification Standard (GICS) sector of the company.
-<!-- + "change" - The price change since the previous trading weekly close.
-             (For monthly take previous trading month’s close and for daily take previous
-             trading day’s close.) -->
 
 We are now analyzing how major historical events impacted the S&P 500 index using constituent data in last 23 years, that is from 2000-2024. Specifically, we will:
 
- - Examine the specific industries of the index respond to the events and how they effected the average price levels of the industry.
+- Analyze the number of companies in each sector and how they have changed over time.
 
- - [NEED TO ADD POINTS HERE]
+- Analyze and visualize to understand which GICS sectors drive the S&P500 Index.
 
- - [NEED TO ADD POINTS HERE]
-  
- - [NEED TO ADD POINTS HERE]
+- Examine the specific industries of the index respond to the events and how they effected the average price levels of the industry.
 
- - Study the correlation between different variables in the dataset to identify relationships or discover patterns.
+- Perform T-tests to compare the average closing prices of the sectors before and after the events.
 
- - Plot [whatever we like]
+- Forecast the S&P 500 index using ARIMA and LSTM model to see how effectively the S&P500 Index can be predicted.
+
+- Evaluate the performance of the ARIMA and LSTM models using Mean Absolute Error (MAE), Mean Squared Error (MSE), and Root Mean Squared Error (RMSE).
+
 
 By looking at prices, returns, correlations, visualizations, and handling outliers, we aim to comprehensively assess how significant historical occurrences influenced the behavior of the S&P 500 index over this 20-year period.
 
+# Step 1: Loading the dataset
 ```{r}
 datasets.url <- "https://drive.usercontent.google.com/download?id=1BqKbN3FEqNcRXeisOPxR_LB8VcSCh7mE&export=download&authuser=0&confirm=t"
+#df <- read.csv("sp500.csv")
 df <- read.csv(datasets.url)
 df$Date <- as.Date(df$Date)
 str(df)
 ```
 
-# Data Preprocessing
 
-#### Checking for NA values and duplicates
+# Step 2: Data Preprocessing
+
+### Checking for NA values and duplicates
 ```{r}
 # Checking for missing values
 sum(is.na(df))
@@ -82,7 +85,8 @@ sum(is.na(df))
 
 + There are `r sum(is.na(df))` missing values in the dataset. This means the dataset is clean and does not require any imputation or removal of data points.
 
-#### Dropping unwanted variables extracting numerical variables
+
+### Dropping unwanted variables extracting numerical variables
 
 ```{r}
 # Making GICS code as a factor variable
@@ -102,13 +106,36 @@ str(newdf)
 + We have also sorted the data by date and calculated the daily returns for each observation.
 + The GICS column has been converted to a factor variable for better analysis. GICS consists of `r nlevels(newdf$GICS)` levels. 
 
+```{r}
+# Define the event windows
+great_recession_start <- as.Date("2007-12-31")
+great_recession_end <- as.Date("2009-06-30")
 
-#### Checking if unique Symbols in the dataset are 500
+covid_start <- as.Date("2020-02-03")
+lockdown_end <- as.Date("2020-08-31")
+covid_end <- as.Date("2023-05-11")
+
+russia_ukraine_start <- as.Date("2022-02-24")
+russia_ukraine_end <- Sys.Date()  # Current date
+
+# The Great Recession
+df_recession <- df[df$Date >= "2007-12-31" & df$Date <= "2009-06-30", ]
+
+# Covid-19
+df_covid <- df[df$Date >= "2020-02-03" & df$Date <= "2023-05-11", ]
+
+# Russia-Ukraine Invasion
+df_ukraine <- df[df$Date >= "2022-02-24", ]
+```
+
+
+
+### Checking if unique Symbols in the dataset are 500
 
 + There are a total of `r length(unique(newdf$Symbol))` unique symbols in the dataset. 
 + The unique sectors in the dataset are `r head(unique(newdf$GICS))` and the unique symbols are `r head(unique(df$Symbol))`.
 
-# Plot to show no.of companies in each 
+### Plot to show number of companies in each GICS sector 
 ```{r}
 industry_counts <- df %>%
   distinct(Symbol, GICS) %>%
@@ -123,34 +150,274 @@ ggplot(industry_counts, aes(x = GICS, y = n)) +
 + The bar chart above shows the number of companies in each industry based on the GICS classification. 
 + The "Industrials" sector has the highest number of companies, followed by "Financials", and "Information Technology".
 
-#plot countplot for each year and sector
+
+### Stacked Bar Plot to show how S&P500 Companies in the GICS Sectors have changed over time
 ```{r}
 ggplot(df, aes(x = year(df$Date), fill = GICS)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 ```
 
-[NEED TO ADD POINTS HERE]
++ We can observe that the spread of companies across different sectors is relatively concentrated in the following four sectors:
+  - Information Technology
+  - Financials
+  - Health Care
+  - Industrials
 
-# plot sum of volume for each year and sector
+### Stacked Bar Plot for each year and constituent sector in S&P500 Index with the total traded Volume
 ```{r}
 ggplot(newdf, aes(x = year(newdf$Date), y = Volume, fill = GICS)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 ```
 
-[NEED TO ADD POINTS HERE]
+
+# SMART Question 1:  Are there any specific industries that drive the index?
+
+```{r, include=TRUE, results=T}
+#checking which industries drive the index
+# Fit a linear regression model
+model <- lm(Close ~ GICS, data = df)
+
+# Perform an ANOVA test
+anova_result <- anova(model)
+
+# Print the ANOVA table
+print(anova_result)
+
+# Alternatively, you can also examine the coefficients
+summary(model)
+```
+
++ The ANOVA table indicates that the GICS sector has a significant overall effect on the stock's closing price (p < 2.2e-16).
++ The coefficients table shows the estimated effect of each GICS sector on the closing price compared to the baseline category. For example:
++ The estimated effect of the Consumer Discretionary sector on the closing price is 83.8207 units higher compared to the baseline.
++ The estimated effect of the Energy sector on the closing price is -5.6606 units lower compared to the baseline.
 
 
-#### ARIMA Model for Forecasting
+```{r, include=TRUE, results=T}
+#checking which industries drive the index
+# Fit a linear regression model
+model1 <- lm(Volume ~ GICS, data = df)
 
-##### Data Loading
+# Perform an ANOVA test
+anova_result <- anova(model1)
+
+# Print the ANOVA table
+print(anova_result)
+
+# Alternatively, you can also examine the coefficients
+summary(model1)
+```
+
++ The ANOVA table indicates that the GICS sector has a significant overall effect on the stock's volume (p < 2.2e-16).
++ The coefficients table shows the estimated effect of each GICS sector on the stock's volume compared to the baseline category:
++ For example, the estimated effect of the Consumer Discretionary sector on the stock's volume is -11137284 units compared to the baseline.
++ The estimated effects for other sectors follow a similar pattern, with each sector having a significant effect on the stock's volume.
+
+```{r, include=TRUE,results=T}
+# Create a data frame with coefficients and sectors
+coefficients <- coef(model)[-1]  # Exclude intercept
+sectors <- names(coefficients)
+data <- data.frame(sectors, coefficients)
+
+# Plot
+ggplot(data, aes(x = sectors, y = coefficients)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Coefficients of GICS Sectors on Close Price",
+       x = "GICS Sectors",
+       y = "Coefficient") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r, include=TRUE,results=T}
+# Create a data frame with coefficients and sectors
+coefficients1 <- coef(model1)[-1]  # Exclude intercept
+sectors1 <- names(coefficients)
+data1 <- data.frame(sectors, coefficients)
+
+# Plot
+ggplot(data, aes(x = sectors1, y = coefficients1)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Coefficients of GICS Sectors on Volume Traded",
+       x = "GICS Sectors",
+       y = "Coefficient") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r, include=TRUE, results=T}
+total_volume <- df %>%
+  group_by(GICS) %>%
+  summarise(total_volume = sum(Volume))
+
+# Bar plot of total volume by GICS sector
+ggplot(total_volume, aes(x = GICS, y = total_volume, fill = GICS)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Total Volume by GICS Sector", x = "GICS Sector", y = "Total Volume") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
++ Here as we can see IT has the highest volume of stocks being traded in the time period, followed by Consumer Discretionary.
+
+
+# SMART Question 2: How does different GICS Sectors respond to major historical Events
+
+### Defining a function to calculate average returns for each company and then average returns for each GICS sector including the average close price for each company
+
+```{r}
+# Function to calculate returns and average close price for each company and then average returns for each GICS sector
+sector_returns <- function(data, start_date, end_date) {
+  # Calculate returns for each company and average close price
+  company_returns_close <- data %>%
+    group_by(Symbol) %>%
+    filter(Date >= start_date & Date <= end_date) %>%
+    reframe(start_close = Close[Date == start_date],
+            end_close = Close[Date == end_date],
+            avg_close = mean(Close)) %>%
+    mutate(return = (end_close - start_close) / start_close * 100) %>%
+    select(Symbol, return, avg_close)
+  
+  # Calculate average returns and average close price for each GICS sector
+  sector_returns_close <- data %>%
+    inner_join(company_returns_close, by = "Symbol") %>%
+    group_by(GICS) %>%
+    summarize(avg_return = mean(return), avg_close = mean(avg_close))
+  
+  return(sector_returns_close)
+}
+
+# Calculate sector returns and average close price for each event
+recession_returns_close <- sector_returns(df_recession, "2007-12-31", "2009-06-30")
+covid_returns_close <- sector_returns(df_covid, "2020-02-03", "2023-05-11")
+ukraine_returns_close <- sector_returns(df_ukraine, "2022-02-24", max(df_ukraine$Date))
+
+head(recession_returns_close, 2)
+head(covid_returns_close, 2)
+head(ukraine_returns_close, 2)
+```
+
+Subsetting the data for 1 Year before the start of event and after the end of events for T-Tests
+
+```{r}
+year_before_recession <- df[df$Date >= "2006-12-29" & df$Date <= "2007-12-31", ]
+year_after_recession <- df[df$Date >= "2009-06-30" & df$Date <= "2010-06-30", ]
+year_before_covid <- df[df$Date >= "2019-02-01" & df$Date <= "2020-02-03", ]
+# using lockdown end date as the end date for covid
+year_after_covid <- df[df$Date >= "2020-08-31" & df$Date <= "2021-08-31", ]
+year_before_ukraine <- df[df$Date >= "2021-02-24" & df$Date <= "2022-02-23", ]
+year_after_ukraine <- df[df$Date >= "2023-02-24" & df$Date <= "2024-02-24", ]
+```
+
+Calculating the average returns for each sector for 1 year before and after the event
+
+```{r}
+# Calculate sector returns for each event and year before and after the event using function defined above
+recession_returns_before <- sector_returns(year_before_recession, "2006-12-29", "2007-12-31")
+recession_returns_after <- sector_returns(year_after_recession, "2009-06-30", "2010-06-30")
+covid_returns_before <- sector_returns(year_before_covid, "2019-02-01", "2020-02-03")
+covid_returns_after <- sector_returns(year_after_covid, "2020-08-31", "2021-08-31")
+ukraine_returns_before <- sector_returns(year_before_ukraine, "2021-02-24", "2022-02-23")
+ukraine_returns_after <- sector_returns(year_after_ukraine, "2022-02-24", "2023-02-24")
+```
+
+Create a function to conduct t-tests for each sector before and after the events
+```{r}
+sector_ttest <- function(sector, before_data, after_data) {
+  subset_before <- before_data %>%
+    filter(GICS == sector) %>%
+    group_by(Date) %>%
+    summarize(avg_close = mean(Close))
+  
+  subset_after <- after_data %>%
+    filter(GICS == sector) %>%
+    group_by(Date) %>%
+    summarize(avg_close = mean(Close))
+  
+  ttest_result <- t.test(subset_before$avg_close, subset_after$avg_close)
+  
+  return(list(before_data = subset_before,
+              after_data = subset_after,
+              ttest_result = ttest_result))
+}
+```
+
+### Conduct t-test for "Industrials", "Information Technology", "Financials", "Health Care" sector before and after the Great Recession, Covid-19 Pandemic, and Russia-Ukraine Invasion
+
+```{r}
+industrials_recession <- sector_ttest("Industrials", year_before_recession, year_after_recession)
+info_tech_recession <- sector_ttest("Information Technology", year_before_recession, year_after_recession)
+financials_recession <- sector_ttest("Financials", year_before_recession, year_after_recession)
+health_care_recession <- sector_ttest("Health Care", year_before_recession, year_after_recession)
+
+# Covid-19 Pandemic
+industrials_covid <- sector_ttest("Industrials", year_before_covid, year_after_covid)
+info_tech_covid <- sector_ttest("Information Technology", year_before_covid, year_after_covid)
+financials_covid <- sector_ttest("Financials", year_before_covid, year_after_covid)
+health_care_covid <- sector_ttest("Health Care", year_before_covid, year_after_covid)
+
+# Russia-Ukraine Invasion
+industrials_ukraine <- sector_ttest("Industrials", year_before_ukraine, year_after_ukraine)
+info_tech_ukraine <- sector_ttest("Information Technology", year_before_ukraine, year_after_ukraine)
+financials_ukraine <- sector_ttest("Financials", year_before_ukraine, year_after_ukraine)
+health_care_ukraine <- sector_ttest("Health Care", year_before_ukraine, year_after_ukraine)
+
+
+# Printing results of the t-tests for the Great Recession
+industrials_recession$ttest_result
+info_tech_recession$ttest_result
+financials_recession$ttest_result
+health_care_recession$ttest_result
+
+# Printing results of the t-tests for the Covid-19 Pandemic
+industrials_covid$ttest_result
+info_tech_covid$ttest_result
+financials_covid$ttest_result
+health_care_covid$ttest_result
+
+# Printing results of the t-tests for the Russia-Ukraine Invasion
+industrials_ukraine$ttest_result
+info_tech_ukraine$ttest_result
+financials_ukraine$ttest_result
+health_care_ukraine$ttest_result
+```
+
+### Visualization of the sector returns during historic events
+
+```{r}
+# Create a function to plot sector returns
+plot_sector_returns <- function(returns, title, color) {
+  ggplot(returns, aes(x = GICS, y = avg_return)) +
+    geom_bar(stat = "identity", fill = color) +
+    labs(x = "GICS Sector", y = "Average Return (%)", title = title) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Plot sector returns for each event
+plot_sector_returns(recession_returns_close, "Sector Returns during the Great Recession", "steelblue")
+plot_sector_returns(covid_returns_close, "Sector Returns during the Covid-19 Pandemic", "orange")
+plot_sector_returns(ukraine_returns_close, "Sector Returns during the Russia-Ukraine Invasion", "lightgreen")
+```
+
+### Interpretation of the sector returns during historic events
++ Financials sector took the biggest hit during the Great Recession, followed by Energy, and Real Estate.
++ During the Covid-19 Pandemic, Energy and Information Technology sectors saw the biggest growth while Utilities and Real Estate tumbled.
++ The Russia-Ukraine Invasion gave yet another chance to Information Technology sector to show how consistent the sector grows during hard times. The Energy and Industrials Sector also grew significantly during this time.
++ Real Estate    is the worst performing sector during all the events.
+
+
+# SMART Question 3: Can we develop a predictive model to forecast the S&P500 index?
+
+## ARIMA Model for Forecasting
+
+### Data Loading
 ```{r, include=F}
-work_df <- newdf
+df <- data.frame(read.csv('https://raw.githubusercontent.com/DATS6101-TeamNeo/datasets/main/dataset2003-2023.csv'))
+df$Date <- as.Date(df$Date)
+str(df)
+work_df <- subset(df, select = -c(6))
 str(work_df)
 summary(work_df)
 ```
-
 ```{r, include=T, results=T}
-work_df$daily_change <- newdf$daily_returns
+work_df$daily_change <- (work_df$Close / lag(work_df$Close) - 1) * 100
 head(work_df)
 work_df <- na.omit(work_df)
 head(work_df)
@@ -158,85 +425,82 @@ head(work_df)
 
 ### Check if the time series is Stationary.
 ```{r, include=T, results=T}
-# TODO:
-#adf.test(work_df$Close)
-
+adf.test(work_df$Close)
 # Check the stationarity using the ACF and PACF plots.
 acf(work_df$Close, main = "ACF Plot")
 pacf(work_df$Close, main = "PACF Plot")
 ```
 
+- As we can see that the data is not stationary, let's use first order differencing to address this issue.
+
 ### Making the time series data stationary
+
 Using first order differencing to make the time series data stationary.
 ```{r, include=T, results=T}
-
 ts_data <- xts(work_df$Close, order.by = work_df$Date)
 ```
-ADF test for the original time series data.
+
+### ADF test for the original time series data.
+
 ```{r, include=T, results=T}
-# TODO:n
-# adf.test(ts_data)
-
+adf.test(ts_data)
 diff_ts_data <- diff(ts_data, differences = 1)
-
 diff_ts_data <- na.omit(diff_ts_data)
 ```
-ADF test for the differenced time series data.
+
+### ADF test for the differenced time series data.
+
 ```{r, include=T, results=T}
-# TODO:
-#adf.test(diff_ts_data)
+adf.test(diff_ts_data)
 ```
 
 ```{r, include=T, results=T}
-# TODO:
-#acf(diff_ts_data, main = "ACF Plot")
-#pacf(diff_ts_data, main = "PACF Plot")
+acf(diff_ts_data, main = "ACF Plot")
+pacf(diff_ts_data, main = "PACF Plot")
 ```
 
-# ARIMA model fitting and forecasting
+## ARIMA model fitting and forecasting
+
 From the adf test and ACF and PACF plots, we can see that the time series data is close to stationarity. We can now create a baseline ARIMA model and forecast the future values.
-```{r, include=T, results=T}
 
+```{r, include=T, results=T}
 train_data <- head(diff_ts_data, n = round(0.98 * length(diff_ts_data)))
 test_data <- diff_ts_data[-seq_along(train_data)]
-
-# TODO:
-# arima_model <- auto.arima(train_data)
-
-
-# summary(arima_model)
-
-
-# forecasts <- forecast(arima_model, h = length(test_data))
+arima_model <- auto.arima(train_data)
+summary(arima_model)
+forecasts <- forecast(arima_model, h = length(test_data))
 ```
 
-# Evaluation of the ARIMA model
+### Evaluation of the ARIMA model
+
 ```{r, include=T, results=T}
-# TODO: 
 # Convert the forecasts to the original scale.
 last_train_date <- index(tail(train_data, 1))
 last_observed_value <- ts_data[last_train_date]
-# actual_preds <- as.vector(last_observed_value) + cumsum(forecasts$mean)
+actual_preds <- as.vector(last_observed_value) + cumsum(forecasts$mean)
 actual_test <- as.vector(last_observed_value) + cumsum(test_data)
-# actual_preds <- xts(actual_preds, order.by = index(actual_test))
-
+actual_preds <- xts(actual_preds, order.by = index(actual_test))
 # Compute the forecasting errors
-# errors <- actual_preds - actual_test
-
+errors <- actual_preds - actual_test
 # Calculate evaluation metrics
-# mae <- mean(abs(errors))
-# mse <- mean(errors^2)
-# rmse <- sqrt(mse)
+mae <- mean(abs(errors))
+mse <- mean(errors^2)
+rmse <- sqrt(mse)
 ```
 
-Mean Absolute Error (MAE): `#r mae`
+Mean Absolute Error (MAE): `r mae`
 
-Mean Squared Error (MSE): `#r mse`
+Mean Squared Error (MSE): `r mse`
 
-Mean Squared Error (RMSE): `#r rmse`
+Mean Squared Error (RMSE): `r rmse`
 
-# Plots
-### Plot train and test data.
+- These are not the best scores when it comes to forecasting the S&P500 index. 
+- This behaviour is expected as the ARIMA model predicts purely based on the previous `Close` values without any other context.
+- So, let's try other models like LSTM to see if we can get better results.
+
+### Plots
+
+#### Plot train and test data.
 ```{r, include=T, results=T}
 plot(ts_data[index(ts_data) <= last_train_date], type = "l", xlab = "Time", ylab = "Index closing price", main = "Train Data")
 plot(ts_data[index(ts_data) > last_train_date], type = "l", xlab = "Time", ylab = "Index closing price", main = "Test Data")
@@ -245,28 +509,255 @@ plot(ts_data[index(ts_data) > last_train_date], type = "l", xlab = "Time", ylab 
 ### Plot the forecasted data along with the train and test data.
 
 ```{r, include=T, results=T}
-
 plot_start_date <- as.Date("2023-01-01")
-
 actual_train <- ts_data[index(ts_data) > plot_start_date & index(ts_data) <= last_train_date]
-
 # Convert the time series data to data frames
 train_df <- data.frame(Date = index(actual_train), Value = coredata(actual_train), Type = "Train data")
 test_df <- data.frame(Date = index(actual_test), Value = coredata(actual_test), Type = "Test data")
-# TODO:
-# forecast_df <- data.frame(Date = index(actual_preds)[-1], Value = actual_preds[-1], Type = "Forecast")
+forecast_df <- data.frame(Date = index(actual_preds)[-1], Value = actual_preds[-1], Type = "Forecast")
+# Combine the data frames
+combined_df <- rbind(train_df, test_df, forecast_df)
+# Create the plot
+ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
+  geom_line() +
+  labs(title = "Train, Test, and Forecast Data Plot",
+       x = "Date",
+       y = "Closing Price") +
+  scale_color_manual(values = c("red", "orange", "blue")) +
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+```{r, include=T, results=T}
+# Linear Regression.
+
+# Assuming 'work_df' contains your preprocessed dataset
+# You may need to select appropriate features and split the data into train and test sets
+
+work_df <- data.frame(subset(df, select = c(1, 5)))
+# Feature selection (Example: using lagged values as features)
+for (i in 1:7) {
+  work_df[[paste0('lag', i)]] <- lag(work_df$Close, i)
+}
+work_df <- na.omit(work_df)
+
+# Split data into train and test sets
+train_size <- 0.98
+train_index <- round(nrow(work_df) * train_size)
+train_data <- work_df[1:train_index, ]
+test_data <- work_df[(train_index + 1):nrow(work_df), ]
+
+# Train the linear regression model
+lm_model <- lm(Close ~ lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7, data = train_data)
+
+future_data <- test_data
+
+future_data[, 3:ncol(future_data)] <- 0
+future_data[1, 3:ncol(future_data)] <- rev(tail(train_data$Close, 7))
+
+# Make predictions on test data
+for (i in 1:nrow(future_data)) {
+  future_data$Close[i] <- predict(lm_model, newdata = future_data[i, ])
+  if (i < nrow(future_data)){
+    future_data[i + 1, 3:ncol(future_data)] <- c(future_data$Close[i], future_data[i, 3:(ncol(future_data) - 1)])
+  }
+}
+predictions <- future_data$Close
+
+# Evaluate the model
+errors <- predictions - test_data$Close
+mae <- mean(abs(errors))
+mse <- mean(errors^2)
+rmse <- sqrt(mse)
+
+# Print evaluation metrics
+print(paste("Mean Absolute Error (MAE):", mae))
+print(paste("Mean Squared Error (MSE):", mse))
+print(paste("Root Mean Squared Error (RMSE):", rmse))
+```
+
+
+```{r, include=T, results=T}
+train_df <- data.frame(Date = work_df[1:train_index, "Date"], Value = coredata(work_df[1:train_index, "Close"]), Type = "Train data")
+test_df <- data.frame(Date = work_df[(train_index+1):nrow(work_df), "Date"], Value = coredata(work_df[(train_index+1):nrow(work_df), "Close"]), Type = "Test data")
+forecast_df <- data.frame(Date = work_df[(train_index+1):nrow(work_df), "Date"], Value = coredata(predictions), Type = "Forecast")
 
 # Combine the data frames
-# combined_df <- rbind(train_df, test_df, forecast_df)
+combined_df <- rbind(train_df[train_df$Date > plot_start_date, ], test_df, forecast_df)
 
 # Create the plot
-# ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
-  # geom_line() +
-  # labs(title = "Train, Test, and Forecast Data Plot",
-  #      x = "Date",
-  #      y = "Closing Price") +
-  # scale_color_manual(values = c("red", "orange", "blue")) +
-  # scale_linetype_manual(values = c("dashed", "solid", "solid")) +
-  # theme_minimal() +
-  # theme(legend.position = "right")
+ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
+  geom_line() +
+  labs(title = "Train, Test, and Forecast Data Plot",
+       x = "Date",
+       y = "Closing Price") +
+  scale_color_manual(values = c("red", "orange", "blue")) +
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  theme_minimal() +
+  theme(legend.position = "right")
 ```
+
+```{r, include=T, results=T}
+ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
+  geom_line() +
+  labs(title = "Train, Test, and Forecast Data Plot",
+       x = "Date",
+       y = "Closing Price") +
+  scale_color_manual(values = c("red", "orange", "blue")) +
+  scale_linetype_manual(values = c("solid", "solid", "solid")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+# LSTM Model for Forecasting
+
+With we have seen from the ARIMA model, we can try to use a more complex model like LSTM to see if we can get better results.
+
+```{r, include=F}
+df <- data.frame(read.csv("https://raw.githubusercontent.com/DATS6101-TeamNeo/datasets/main/dataset2003-2023.csv"))
+str(df)
+summary(df)
+```
+
+```{r, include=T, results=T}
+work_df <- subset(df, select = -(6))
+work_df$daily_change <- (work_df$Close - lag(work_df$Close)) / lag(work_df$Close) * 100
+head(work_df)
+work_df <- na.omit(work_df)
+head(work_df)
+```
+
+```{r, echo=FALSE}
+work_df <- data.frame(subset(df, select = c(1, 5)))
+# Feature selection (Example: using lagged values as features)
+for (i in 1:7) {
+  work_df[[paste0('lag', i)]] <- lag(work_df$Close, i)
+}
+work_df <- na.omit(work_df)
+
+# Split data into train and test sets
+train_size <- 0.98
+train_index <- round(nrow(work_df) * train_size)
+train_data <- work_df[1:train_index, ]
+test_data <- work_df[(train_index + 1):nrow(work_df), ]
+```
+
+```{r, include=T, results=T}
+library(keras)
+library(tensorflow)
+
+model <- keras_model_sequential() %>%
+  layer_lstm(units = 2048, activation="relu", return_sequences = TRUE, input_shape = c(7, 1)) %>%
+  layer_dropout(rate = 0.2) %>%
+  layer_lstm(units = 1024, activation="relu", return_sequences = TRUE) %>%
+  layer_dropout(rate = 0.2) %>%
+  layer_lstm(units = 512, activation="relu") %>%
+  layer_dropout(rate = 0.2) %>%
+  layer_dense(units = 1)
+```
+
+- Installing tensorflow in RStudio is a bit tricky. Please follow the instructions to install tensorflow in RStudio:
+  - Install the `reticulate` package in RStudio using the following command: `install.packages("reticulate")`.
+  - Install the `tensorflow` package in RStudio using the following command: `install.packages("tensorflow")`.
+  - Install the `keras` package in RStudio using the following command: `install.packages("keras")`.
+
+```{r, include=T, results=T}
+model %>% compile(
+  loss = 'mean_absolute_error',
+  optimizer = 'adam'
+)
+```
+
+```{r, include=T, results=T}
+x_train <- as.list(train_data[, 3:9])
+x_train <- do.call(cbind, x_train)
+y_train <- as.list(train_data[, 2])
+y_train <- do.call(rbind, y_train)
+
+x_val <- as.list(test_data[, 3:9])
+x_val <- do.call(cbind, x_val)
+y_val <- as.list(test_data[, 2])
+y_val <- do.call(rbind, y_val)
+```
+
+```{r, include=T, results=T}
+# Uncomment to run training
+#model %>% fit(
+#  x_train, y_train,
+#  epochs = 10,
+#  batch_size = 32,
+#  validation_data = list(x_val, y_val),
+#  callbacks = list(
+#  callback_model_checkpoint("checkpoints.h5", save_best_only = TRUE)
+#  )
+#)
+```
+
+```{r, include=T, results=T}
+options(timeout=300)
+download.url <- "https://github.com/PrudhvirajuChekuri/datasets/raw/main/checkpoints.h5"
+download.file(download.url, destfile = "checkpoints.h5", mode = "wb")
+
+model <- load_model_hdf5("checkpoints.h5")
+
+summary(model)
+
+# Compute the forecasting errors
+predictions <- model %>% predict(x_val)
+errors <- predictions - test_data$Close
+
+# Calculate evaluation metrics
+mae <- mean(abs(errors))
+mse <- mean(errors^2)
+rmse <- sqrt(mse)
+
+#print(paste("Mean Absolute Error (MAE):", mae))
+#print(paste("Mean Squared Error (MSE):", mse))
+#print(paste("Root Mean Squared Error (RMSE):", rmse))
+```
+
+Mean Absolute Error (MAE): `r mae`
+
+Mean Squared Error (MSE): `r mse`
+
+Root Mean Squared Error (RMSE): `r rmse`
+
+
+```{r, include=T, results=T}
+
+train_ts <- xts(do.call(rbind, as.list(train_data$Close)), order.by = as.Date(train_data$Date))
+test_ts <- xts(test_data$Close, order.by = as.Date(test_data$Date))
+forecast_ts <- xts(predictions, order.by = as.Date(test_data$Date))
+```
+
+```{r, include=T, results=F}
+
+plot_train_start_date <- as.Date("2023-01-01")
+
+train_ts <- train_ts[index(train_ts) > plot_train_start_date & index(train_ts) <= tail(train_data, 1)$Date]
+
+train_df <- data.frame(Date = index(train_ts), Value = coredata(train_ts), Type = "Train data")
+test_df <- data.frame(Date = index(test_ts), Value = coredata(test_ts), Type = "Test data")
+forecast_df <- data.frame(Date = index(forecast_ts)[-1], Value = coredata(forecast_ts)[-1], Type = "Forecast")
+
+# Combine the data frames
+combined_df <- rbind(train_df, test_df, forecast_df)
+
+# Create the plot
+ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
+  geom_line()
+  labs(title = "ARIMA Model Evaluation (Train, Test, and Forecast Data Plot)",
+       x = "Date",
+       y = "Closing Price") +
+  scale_color_manual(values = c("red", "orange", "blue")) +
+  scale_linetype_manual(values = c("solid", "solid", "solid")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+- From the MAE, MSE, and RMSE values, we can see that the LSTM model performs better than the ARIMA model in forecasting the S&P500 index.
+- The LSTM model takes into account the sequential nature of the data and can capture more complex patterns compared to the ARIMA model.
+- Although, this comes at the cost of longer run times and more complex model architecture.
+- So, the LSTM model can be a better choice for forecasting the S&P500 index if accuracy is more important than keeping the model simple and for users who plans to invest based on just the index close price irrespective of what's happening in the rest of the world.
+.
