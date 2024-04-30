@@ -15,33 +15,258 @@ output:
 
 ```{r init, include=FALSE}
 # Load all required packagess
+library(xts)
+library(rvest)
 library(dplyr)
-library(ggplot2)
 library(ezids)
-library(lubridate)
+library(ggplot2)
+library(tseries)
 library(corrplot)
+library(quantmod)
+library(forecast)
+library(lubridate)
+library(tidyverse)
+
 knitr::opts_chunk$set(warning = F, results = "markup", message = F)
 options(scientific=T, digits = 3) 
-library(rvest)
-library(tidyverse)
-library(quantmod)
 ```
 
 
 
 # Team Neo Midterm Project
 
-Terminology in Trading
 
++ "symbol" - The stock symbol of the company in the S&P500 Index.
++ "date" - The date of the stock price.
 + "open" - The opening price for the specified date(s).
-+ "close" - The closing price for the specified date(s).
 + "high" - The high price for the specified date(s).
 + "low" - The low price for the specified date(s).
++ "close" - The closing price for the specified date(s).
++ "adjusted" - The adjusted closing price for the specified date(s).
 + "volume" - The volume for the specified date(s).
-+ "change" - The price change since the previous trading weekly close.
++ "GICS.Sector" - The Global Industry Classification Standard (GICS) sector of the company.
+<!-- + "change" - The price change since the previous trading weekly close.
              (For monthly take previous trading month’s close and for daily take previous
-             trading day’s close.)
+             trading day’s close.) -->
+
+We are now analyzing how major historical events impacted the S&P 500 index using constituent data in last 23 years, that is from 2000-2024. Specifically, we will:
+
+ - Examine the specific industries of the index respond to the events and how they effected the average price levels of the industry.
+
+ - [NEED TO ADD POINTS HERE]
+
+ - [NEED TO ADD POINTS HERE]
+  
+ - [NEED TO ADD POINTS HERE]
+
+ - Study the correlation between different variables in the dataset to identify relationships or discover patterns.
+
+ - Plot [whatever we like]
+
+By looking at prices, returns, correlations, visualizations, and handling outliers, we aim to comprehensively assess how significant historical occurrences influenced the behavior of the S&P 500 index over this 20-year period.
+
+```{r}
+datasets.url <- "https://drive.usercontent.google.com/download?id=1BqKbN3FEqNcRXeisOPxR_LB8VcSCh7mE&export=download&authuser=0&confirm=t"
+df <- read.csv(datasets.url)
+df$Date <- as.Date(df$Date)
+str(df)
+```
+
+# Data Preprocessing
+
+#### Checking for NA values and duplicates
+```{r}
+# Checking for missing values
+sum(is.na(df))
+```
+
++ There are `r sum(is.na(df))` missing values in the dataset. This means the dataset is clean and does not require any imputation or removal of data points.
+
+#### Dropping unwanted variables extracting numerical variables
+
+```{r}
+# Making GICS code as a factor variable
+df$GICS <- as.factor(df$GICS)
+# Removing the adjusted column as it is not required for our analysis
+newdf <- df %>% select(-c("Adj.Close")) %>%
+  arrange(Date) %>% # sorting the data by date
+  mutate(daily_returns = (Close - lag(Close)) / lag(Close))
+
+# remove first row to avoid NA values
+newdf <- newdf[-1,]
+head(newdf)
+str(newdf)
+```
+
++ As a part of pre-processing, we have removed the "Adj.Close" column from the dataset as it is not required for our analysis. 
++ We have also sorted the data by date and calculated the daily returns for each observation.
++ The GICS column has been converted to a factor variable for better analysis. GICS consists of `r nlevels(newdf$GICS)` levels. 
 
 
-***Need to add description here, based on how we plan to conclude this project*** 
+#### Checking if unique Symbols in the dataset are 500
 
++ There are a total of `r length(unique(newdf$Symbol))` unique symbols in the dataset. 
++ The unique sectors in the dataset are `r head(unique(newdf$GICS))` and the unique symbols are `r head(unique(df$Symbol))`.
+
+# Plot to show no.of companies in each 
+```{r}
+industry_counts <- df %>%
+  distinct(Symbol, GICS) %>%
+  count(GICS)
+
+ggplot(industry_counts, aes(x = GICS, y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Number of Companies per Industry", x = "Industry (GICS)", y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
++ The bar chart above shows the number of companies in each industry based on the GICS classification. 
++ The "Industrials" sector has the highest number of companies, followed by "Financials", and "Information Technology".
+
+#plot countplot for each year and sector
+```{r}
+ggplot(df, aes(x = year(df$Date), fill = GICS)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+[NEED TO ADD POINTS HERE]
+
+# plot sum of volume for each year and sector
+```{r}
+ggplot(newdf, aes(x = year(newdf$Date), y = Volume, fill = GICS)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+[NEED TO ADD POINTS HERE]
+
+
+#### ARIMA Model for Forecasting
+
+##### Data Loading
+```{r, include=F}
+work_df <- newdf
+str(work_df)
+summary(work_df)
+```
+
+```{r, include=T, results=T}
+work_df$daily_change <- newdf$daily_returns
+head(work_df)
+work_df <- na.omit(work_df)
+head(work_df)
+```
+
+### Check if the time series is Stationary.
+```{r, include=T, results=T}
+# TODO:
+#adf.test(work_df$Close)
+
+# Check the stationarity using the ACF and PACF plots.
+acf(work_df$Close, main = "ACF Plot")
+pacf(work_df$Close, main = "PACF Plot")
+```
+
+### Making the time series data stationary
+Using first order differencing to make the time series data stationary.
+```{r, include=T, results=T}
+
+ts_data <- xts(work_df$Close, order.by = work_df$Date)
+```
+ADF test for the original time series data.
+```{r, include=T, results=T}
+# TODO:n
+# adf.test(ts_data)
+
+diff_ts_data <- diff(ts_data, differences = 1)
+
+diff_ts_data <- na.omit(diff_ts_data)
+```
+ADF test for the differenced time series data.
+```{r, include=T, results=T}
+# TODO:
+#adf.test(diff_ts_data)
+```
+
+```{r, include=T, results=T}
+# TODO:
+#acf(diff_ts_data, main = "ACF Plot")
+#pacf(diff_ts_data, main = "PACF Plot")
+```
+
+# ARIMA model fitting and forecasting
+From the adf test and ACF and PACF plots, we can see that the time series data is close to stationarity. We can now create a baseline ARIMA model and forecast the future values.
+```{r, include=T, results=T}
+
+train_data <- head(diff_ts_data, n = round(0.98 * length(diff_ts_data)))
+test_data <- diff_ts_data[-seq_along(train_data)]
+
+# TODO:
+# arima_model <- auto.arima(train_data)
+
+
+# summary(arima_model)
+
+
+# forecasts <- forecast(arima_model, h = length(test_data))
+```
+
+# Evaluation of the ARIMA model
+```{r, include=T, results=T}
+# TODO: 
+# Convert the forecasts to the original scale.
+last_train_date <- index(tail(train_data, 1))
+last_observed_value <- ts_data[last_train_date]
+# actual_preds <- as.vector(last_observed_value) + cumsum(forecasts$mean)
+actual_test <- as.vector(last_observed_value) + cumsum(test_data)
+# actual_preds <- xts(actual_preds, order.by = index(actual_test))
+
+# Compute the forecasting errors
+# errors <- actual_preds - actual_test
+
+# Calculate evaluation metrics
+# mae <- mean(abs(errors))
+# mse <- mean(errors^2)
+# rmse <- sqrt(mse)
+```
+
+Mean Absolute Error (MAE): `#r mae`
+
+Mean Squared Error (MSE): `#r mse`
+
+Mean Squared Error (RMSE): `#r rmse`
+
+# Plots
+### Plot train and test data.
+```{r, include=T, results=T}
+plot(ts_data[index(ts_data) <= last_train_date], type = "l", xlab = "Time", ylab = "Index closing price", main = "Train Data")
+plot(ts_data[index(ts_data) > last_train_date], type = "l", xlab = "Time", ylab = "Index closing price", main = "Test Data")
+```
+
+### Plot the forecasted data along with the train and test data.
+
+```{r, include=T, results=T}
+
+plot_start_date <- as.Date("2023-01-01")
+
+actual_train <- ts_data[index(ts_data) > plot_start_date & index(ts_data) <= last_train_date]
+
+# Convert the time series data to data frames
+train_df <- data.frame(Date = index(actual_train), Value = coredata(actual_train), Type = "Train data")
+test_df <- data.frame(Date = index(actual_test), Value = coredata(actual_test), Type = "Test data")
+# TODO:
+# forecast_df <- data.frame(Date = index(actual_preds)[-1], Value = actual_preds[-1], Type = "Forecast")
+
+# Combine the data frames
+# combined_df <- rbind(train_df, test_df, forecast_df)
+
+# Create the plot
+# ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
+  # geom_line() +
+  # labs(title = "Train, Test, and Forecast Data Plot",
+  #      x = "Date",
+  #      y = "Closing Price") +
+  # scale_color_manual(values = c("red", "orange", "blue")) +
+  # scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  # theme_minimal() +
+  # theme(legend.position = "right")
+```
