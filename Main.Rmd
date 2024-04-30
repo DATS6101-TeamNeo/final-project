@@ -695,9 +695,6 @@ y_val <- do.call(rbind, y_val)
 ```
 
 ```{r, include=T, results=T}
-options(timeout=300)
-download.url <- "https://github.com/PrudhvirajuChekuri/datasets/raw/main/checkpoints.h5"
-download.file(download.url, destfile = "checkpoints.h5", mode = "wb")
 
 model <- load_model_hdf5("checkpoints.h5")
 
