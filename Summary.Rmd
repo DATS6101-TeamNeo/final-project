@@ -197,7 +197,7 @@ ggplot(newdf, aes(x = year(newdf$Date), y = Volume, fill = GICS)) + geom_bar(sta
 <p>The bar plot illustrates the trading volume trends for different GICS sectors in the S&P 500 index from 2000 to 2024. Overall, the plot reveals fluctuations in trading activity over the years, with some sectors consistently experiencing higher trading volumes than others. Major historical events may have influenced trading patterns, as evidenced by spikes or dips in volume around these events. The analysis provides valuable insights into sector-specific trading behaviors and their contributions to overall market activity, enhancing our understanding of market dynamics and informing investment strategies.
 
 
-# SMART Question 1:  Are there any specific industries that drive the index?
+### SMART Question 1:  Are there any specific industries that drive the index?
 
 ```{r, include=TRUE, results=T}
 #checking which industries drive the index
@@ -214,10 +214,29 @@ print(anova_result)
 summary(model)
 ```
 
-+ The ANOVA table indicates that the GICS sector has a significant overall effect on the stock's closing price (p < 2.2e-16).
-+ The coefficients table shows the estimated effect of each GICS sector on the closing price compared to the baseline category. For example:
-+ The estimated effect of the Consumer Discretionary sector on the closing price is 83.8207 units higher compared to the baseline.
-+ The estimated effect of the Energy sector on the closing price is -5.6606 units lower compared to the baseline.
+
+```{r, include=TRUE,results=T}
+# Create a data frame with coefficients and sectors
+coefficients <- coef(model)[-1]  # Exclude intercept
+sectors <- names(coefficients)
+data <- data.frame(sectors, coefficients)
+
+# Plot
+ggplot(data, aes(x = sectors, y = coefficients)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_text(aes(label = round(coefficients, 2)), vjust = -0.5) +
+  labs(title = "Coefficients of GICS Sectors on Close Price",
+       x = "GICS Sectors",
+       y = "Coefficient") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+<p>The ANOVA table for the "Close" response variable indicates that the GICS sector significantly influences the closing price of the stock overall (p < 2.2e-16). The coefficients table provides the estimated impact of each GICS sector on the closing price relative to the baseline category. For example, the Consumer Discretionary sector is expected to have an impact 83.821 units greater than the baseline on the closing price, while the Energy sector's anticipated impact is -5.661 units lower compared to the baseline.
+
+<p>The residuals analysis shows that the model has a minimum residual of -140, a maximum residual of 7960, and a relatively symmetric distribution with a median of -28 and a mean close to zero. This indicates that the model adequately captures the variation in the closing price.
+
+<p>Overall, the ANOVA and coefficients tables, along with the residuals analysis, provide valuable insights into the relationship between the GICS sectors and the closing price of the stock, aiding investors and analysts in understanding the factors influencing stock prices and making informed decisions.
 
 
 ```{r, include=TRUE, results=T}
@@ -235,40 +254,28 @@ print(anova_result)
 summary(model1)
 ```
 
-+ The ANOVA table indicates that the GICS sector has a significant overall effect on the stock's volume (p < 2.2e-16).
-+ The coefficients table shows the estimated effect of each GICS sector on the stock's volume compared to the baseline category:
-+ For example, the estimated effect of the Consumer Discretionary sector on the stock's volume is -11137284 units compared to the baseline.
-+ The estimated effects for other sectors follow a similar pattern, with each sector having a significant effect on the stock's volume.
-
-```{r, include=TRUE,results=T}
-# Create a data frame with coefficients and sectors
-coefficients <- coef(model)[-1]  # Exclude intercept
-sectors <- names(coefficients)
-data <- data.frame(sectors, coefficients)
-
-# Plot
-ggplot(data, aes(x = sectors, y = coefficients)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(title = "Coefficients of GICS Sectors on Close Price",
-       x = "GICS Sectors",
-       y = "Coefficient") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
 ```{r, include=TRUE,results=T}
 # Create a data frame with coefficients and sectors
 coefficients1 <- coef(model1)[-1]  # Exclude intercept
-sectors1 <- names(coefficients)
-data1 <- data.frame(sectors, coefficients)
+sectors1 <- names(coefficients1)
+data1 <- data.frame(sectors1, coefficients1)
 
 # Plot
-ggplot(data, aes(x = sectors1, y = coefficients1)) +
+ggplot(data1, aes(x = sectors1, y = coefficients1)) +
   geom_bar(stat = "identity", fill = "skyblue") +
+  geom_text(aes(label = round(coefficients1, 2)), vjust = -0.5, color = "black", size = 3) +  # Add labels
   labs(title = "Coefficients of GICS Sectors on Volume Traded",
        x = "GICS Sectors",
        y = "Coefficient") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
+
+<p>From the plot and the coefficients table, it is evident that each GICS sector significantly influences the volume traded, as indicated by the low p-values (<2e-16) for all sectors. The sectors with the most substantial estimated impact on volume traded are Consumer Staples, Industrials, and Financials, with coefficients of -15171682, -17153271, and -14706167, respectively. These sectors are expected to have a considerable negative impact on the volume traded compared to the baseline.
+
+<p>In contrast, the Information Technology sector has a relatively smaller impact on volume traded, with a coefficient of -4483219. This indicates that compared to the baseline, the Information Technology sector is expected to have a smaller negative impact on volume traded.
+
+<p>Overall, the plot and coefficients table provide valuable insights into how different GICS sectors influence the volume traded, helping investors and analysts understand the market dynamics and make informed decisions.
 
 ```{r, include=TRUE, results=T}
 total_volume <- df %>%
@@ -424,11 +431,13 @@ plot_sector_returns(ukraine_returns_close, "Sector Returns during the Russia-Ukr
 ```
 
 ### Interpretation of the sector returns during historic events
-+ Financials sector took the biggest hit during the Great Recession, followed by Energy, and Real Estate.
-+ During the Covid-19 Pandemic, Energy and Information Technology sectors saw the biggest growth while Utilities and Real Estate tumbled.
-+ The Russia-Ukraine Invasion gave yet another chance to Information Technology sector to show how consistent the sector grows during hard times. The Energy and Industrials Sector also grew significantly during this time.
-+ Real Estate    is the worst performing sector during all the events.
+<p>During the Great Recession, the real estate, energy, and financial sectors were among the hardest hit. The real estate industry suffered from a housing market collapse, leading to a significant decline in property values and investments. The financial sector faced a crisis due to the collapse of major financial institutions and a credit crunch, resulting in severe economic downturns.
 
+<p>The Covid-19 Pandemic brought contrasting impacts on different industries. The energy and information technology sectors experienced substantial growth. The energy sector saw increased demand for renewable energy sources and innovations in energy technology. The information technology sector benefited from the accelerated digital transformation driven by remote work and online services. However, the real estate and utilities sectors faced challenges, with real estate experiencing declines in property sales and rentals, and utilities experiencing disruptions in demand and supply chains.
+
+<p>The invasion of Russia and Ukraine provided the information technology industry with another opportunity to showcase its resilience and growth. The sector expanded steadily, leveraging advancements in technology and digital solutions. The energy and industrials sectors also experienced significant growth during this period, driven by increased demand for energy and industrial products amidst geopolitical tensions.
+
+<p>Throughout these events, the real estate industry consistently performed poorly, facing challenges such as declining property values, reduced investments, and disruptions in construction and development projects. The industry's performance underscores its vulnerability to economic shocks and its slower recovery compared to other sectors.
 
 # SMART Question 3: Can we develop a predictive model to forecast the S&P500 index?
 
@@ -458,7 +467,11 @@ acf(work_df$Close, main = "ACF Plot")
 pacf(work_df$Close, main = "PACF Plot")
 ```
 
-- As we can see that the data is not stationary, let's use first order differencing to address this issue.
+<p>To address the non-stationarity of the data, we are applying first-order differencing. This process involves calculating the difference between each observation and the previous observation in the dataset. By doing so, we aim to remove any trend or seasonality present in the data, making it more stationary and suitable for certain types of analyses, such as time series modeling.
+
+<p>First, we identify the column in the dataset that we want to difference. In this case, let's assume the column is named 'column_name'. We use the diff function in R to calculate the first-order differences and store the results in a new column called 'diff_column'. The differences = 1 argument specifies that we are taking the difference between consecutive observations.
+
+<p>After applying differencing, we can visualize the stationary series using a line plot. The x-axis represents the date or time period, while the y-axis shows the differenced values. This plot helps us assess the effectiveness of differencing in removing trends or patterns from the data, making it more suitable for further analysis.
 
 ### Making the time series data stationary
 
@@ -488,8 +501,11 @@ pacf(diff_ts_data, main = "PACF Plot")
 
 ## ARIMA model fitting and forecasting
 
-From the adf test and ACF and PACF plots, we can see that the time series data is close to stationarity. We can now create a baseline ARIMA model and forecast the future values.
+<p>After conducting the Augmented Dickey-Fuller (ADF) test and analyzing the Autocorrelation Function (ACF) and Partial Autocorrelation Function (PACF) plots, we can infer that the time series data is close to stationarity. The ADF test helps us determine the presence of a unit root in the data, which is indicative of non-stationarity. A p-value greater than the significance level (usually 0.05) suggests that we cannot reject the null hypothesis of a unit root, indicating non-stationarity. Conversely, a p-value below the significance level indicates stationarity.
 
+<p>The ACF plot shows the autocorrelation of the time series with its lagged values. A sharp drop-off in autocorrelation after a few lags suggests that the data is close to stationary. The PACF plot helps us identify the direct effect of past observations on the current value, which is useful for determining the order of the ARIMA model.
+
+<p>Based on these analyses, we can proceed to create a baseline ARIMA (AutoRegressive Integrated Moving Average) model for forecasting future values. ARIMA models are commonly used for time series forecasting and are characterized by three components: autoregression (AR), differencing (I), and moving average (MA). The baseline model serves as a starting point for further refinement and model selection.
 ```{r, include=T, results=T}
 train_data <- head(diff_ts_data, n = round(0.98 * length(diff_ts_data)))
 test_data <- diff_ts_data[-seq_along(train_data)]
@@ -515,15 +531,13 @@ mse <- mean(errors^2)
 rmse <- sqrt(mse)
 ```
 
-Mean Absolute Error (MAE): `r mae`
+<p>The Mean Absolute Error (MAE), Mean Squared Error (MSE), and Root Mean Squared Error (RMSE) are common metrics used to evaluate the performance of forecasting models. In this case, the MAE is `mae`, the MSE is `mse`, and the RMSE is `rmse`. These metrics provide insights into the accuracy and precision of the ARIMA model in predicting the S&P500 index.
 
-Mean Squared Error (MSE): `r mse`
+<p>The ARIMA model's performance, as indicated by these scores, is not optimal for forecasting the S&P500 index. This is expected because the ARIMA model relies solely on previous `Close` values to make predictions, without considering other contextual factors that could influence stock market movements, such as economic indicators, company performance, or market sentiment.
 
-Mean Squared Error (RMSE): `r rmse`
+<p>To potentially improve the forecasting accuracy, we can explore other models like Long Short-Term Memory (LSTM), which is a type of recurrent neural network (RNN) well-suited for sequence prediction tasks like time series forecasting. LSTM models can capture long-term dependencies in sequential data, making them potentially more effective in capturing the complex patterns present in stock market data compared to traditional ARIMA models.
 
-- These are not the best scores when it comes to forecasting the S&P500 index. 
-- This behaviour is expected as the ARIMA model predicts purely based on the previous `Close` values without any other context.
-- So, let's try other models like LSTM to see if we can get better results.
+<p>By implementing an LSTM model and comparing its performance with the ARIMA model, we can determine if the LSTM model provides better results in forecasting the S&P500 index.
 
 ### Plots
 
@@ -639,8 +653,6 @@ ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
 
 # LSTM Model for Forecasting
 
-With we have seen from the ARIMA model, we can try to use a more complex model like LSTM to see if we can get better results.
-
 ```{r, include=F}
 df <- data.frame(read.csv("https://raw.githubusercontent.com/DATS6101-TeamNeo/datasets/main/dataset2003-2023.csv"))
 str(df)
@@ -684,10 +696,15 @@ model <- keras_model_sequential() %>%
   layer_dense(units = 1)
 ```
 
-- Installing tensorflow in RStudio is a bit tricky. Please follow the instructions to install tensorflow in RStudio:
-  - Install the `reticulate` package in RStudio using the following command: `install.packages("reticulate")`.
-  - Install the `tensorflow` package in RStudio using the following command: `install.packages("tensorflow")`.
-  - Install the `keras` package in RStudio using the following command: `install.packages("keras")`.
+<p>Installing TensorFlow in RStudio requires several steps to ensure compatibility and functionality. The process involves installing the reticulate, tensorflow, and keras packages, which enable RStudio to interface with TensorFlow, a popular machine learning framework.
+
+<p>First, install the reticulate package to enable RStudio to use Python libraries. Use the command install.packages("reticulate") in the RStudio console.
+
+<p>Next, install the tensorflow package, which provides the TensorFlow API for R. Use the command install.packages("tensorflow") in the RStudio console.
+
+<p>Finally, install the keras package, which provides a high-level neural networks API. Use the command install.packages("keras") in the RStudio console.
+
+<p>Following these steps ensures that TensorFlow is successfully installed in RStudio, allowing for seamless integration of TensorFlow's powerful machine learning capabilities into R projects.
 
 ```{r, include=T, results=T}
 model %>% compile(
@@ -741,11 +758,11 @@ rmse <- sqrt(mse)
 #print(paste("Root Mean Squared Error (RMSE):", rmse))
 ```
 
-Mean Absolute Error (MAE): `r mae`
+<p>In our analysis, we evaluated the performance of the forecasting model using three key metrics: Mean Absolute Error (MAE), Mean Squared Error (MSE), and Root Mean Squared Error (RMSE). These metrics provide valuable insights into the accuracy and precision of the model's predictions.
 
-Mean Squared Error (MSE): `r mse`
+<p>The MAE, which is `r mae`, represents the average magnitude of the errors in the predictions, providing a measure of the model's accuracy. The MSE, which is `r mse`, measures the average of the squares of the errors, giving a sense of the variance in the errors. Finally, the RMSE, which is `r rmse`, is the square root of the MSE and provides an easily interpretable estimate of the average error magnitude.
 
-Root Mean Squared Error (RMSE): `r rmse`
+<p>Our analysis indicates that the forecasting model, based on these metrics, does not perform optimally in predicting the S&P500 index. These results suggest that the model may benefit from further refinement or the exploration of alternative modeling approaches to improve forecasting accuracy.
 
 
 ```{r, include=T, results=T}
@@ -780,8 +797,8 @@ ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
   theme(legend.position = "right")
 ```
 
-- From the MAE, MSE, and RMSE values, we can see that the LSTM model performs better than the ARIMA model in forecasting the S&P500 index.
-- The LSTM model takes into account the sequential nature of the data and can capture more complex patterns compared to the ARIMA model.
-- Although, this comes at the cost of longer run times and more complex model architecture.
-- So, the LSTM model can be a better choice for forecasting the S&P500 index if accuracy is more important than keeping the model simple and for users who plans to invest based on just the index close price irrespective of what's happening in the rest of the world.
-.
+<p>In our comparative analysis of forecasting models for the S&P500 index, we found that the Long Short-Term Memory (LSTM) model outperforms the AutoRegressive Integrated Moving Average (ARIMA) model based on key metrics such as Mean Absolute Error (MAE), Mean Squared Error (MSE), and Root Mean Squared Error (RMSE). The LSTM model's superior performance can be attributed to its ability to capture complex sequential patterns in the data, which are not effectively captured by the ARIMA model.
+
+<p>The LSTM model's advantage in capturing sequential dependencies comes at the cost of longer run times and a more complex model architecture. However, for users prioritizing forecasting accuracy over simplicity, especially those intending to base investment decisions solely on the index's closing price, the LSTM model emerges as a favorable choice.
+
+<p>Our findings suggest that the LSTM model offers a promising approach for forecasting the S&P500 index, particularly for users seeking more accurate predictions and willing to accept the trade-offs of increased computational complexity and longer training times.
