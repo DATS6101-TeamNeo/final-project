@@ -1,1 +1,170 @@
+---
+title: "Effect of Major Historical Events on S&P500 Index"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: false
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
 
+```{r init, include=FALSE}
+# Load all required packagess
+library(xts)
+library(rvest)
+library(dplyr)
+library(ezids)
+library(ggplot2)
+library(tseries)
+library(corrplot)
+library(quantmod)
+library(forecast)
+library(lubridate)
+library(tidyverse)
+
+knitr::opts_chunk$set(warning = F, results = "markup", message = F)
+options(scientific=T, digits = 3) 
+```
+
+
+
+<h1>Team Neo Midterm Project</h1>
+
+
+# Step 0: Understanding the dataset
+
++ "symbol" - The stock symbol of the company in the S&P500 Index.
++ "date" - The date of the stock price.
++ "open" - The opening price for the specified date(s).
++ "high" - The high price for the specified date(s).
++ "low" - The low price for the specified date(s).
++ "close" - The closing price for the specified date(s).
++ "adjusted" - The adjusted closing price for the specified date(s).
++ "volume" - The volume for the specified date(s).
++ "GICS.Sector" - The Global Industry Classification Standard (GICS) sector of the company.
+
+We are now analyzing how major historical events impacted the S&P 500 index using constituent data in last 23 years, that is from 2000-2024. Specifically, we will:
+
+- Analyze the number of companies in each sector and how they have changed over time.
+
+- Analyze and visualize to understand which GICS sectors drive the S&P500 Index.
+
+- Examine the specific industries of the index respond to the events and how they effected the average price levels of the industry.
+
+- Perform T-tests to compare the average closing prices of the sectors before and after the events.
+
+- Forecast the S&P 500 index using ARIMA and LSTM model to see how effectively the S&P500 Index can be predicted.
+
+- Evaluate the performance of the ARIMA and LSTM models using Mean Absolute Error (MAE), Mean Squared Error (MSE), and Root Mean Squared Error (RMSE).
+
+
+By looking at prices, returns, correlations, visualizations, and handling outliers, we aim to comprehensively assess how significant historical occurrences influenced the behavior of the S&P 500 index over this 20-year period.
+
+# Step 1: Loading the dataset
+```{r}
+datasets.url <- "https://drive.usercontent.google.com/download?id=1BqKbN3FEqNcRXeisOPxR_LB8VcSCh7mE&export=download&authuser=0&confirm=t"
+#df <- read.csv("sp500.csv")
+df <- read.csv(datasets.url)
+df$Date <- as.Date(df$Date)
+str(df)
+```
+
+
+# Step 2: Data Preprocessing
+
+### Checking for NA values and duplicates
+```{r}
+# Checking for missing values
+sum(is.na(df))
+```
+
++ There are `r sum(is.na(df))` missing values in the dataset. This means the dataset is clean and does not require any imputation or removal of data points.
+
+
+### Dropping unwanted variables extracting numerical variables
+
+```{r}
+# Making GICS code as a factor variable
+df$GICS <- as.factor(df$GICS)
+# Removing the adjusted column as it is not required for our analysis
+newdf <- df %>% select(-c("Adj.Close")) %>%
+  arrange(Date) %>% # sorting the data by date
+  mutate(daily_returns = (Close - lag(Close)) / lag(Close))
+
+# remove first row to avoid NA values
+newdf <- newdf[-1,]
+head(newdf)
+str(newdf)
+```
+
++ As a part of pre-processing, we have removed the "Adj.Close" column from the dataset as it is not required for our analysis. 
++ We have also sorted the data by date and calculated the daily returns for each observation.
++ The GICS column has been converted to a factor variable for better analysis. GICS consists of `r nlevels(newdf$GICS)` levels. 
+
+```{r}
+# Define the event windows
+great_recession_start <- as.Date("2007-12-31")
+great_recession_end <- as.Date("2009-06-30")
+
+covid_start <- as.Date("2020-02-03")
+lockdown_end <- as.Date("2020-08-31")
+covid_end <- as.Date("2023-05-11")
+
+russia_ukraine_start <- as.Date("2022-02-24")
+russia_ukraine_end <- Sys.Date()  # Current date
+
+# The Great Recession
+df_recession <- df[df$Date >= "2007-12-31" & df$Date <= "2009-06-30", ]
+
+# Covid-19
+df_covid <- df[df$Date >= "2020-02-03" & df$Date <= "2023-05-11", ]
+
+# Russia-Ukraine Invasion
+df_ukraine <- df[df$Date >= "2022-02-24", ]
+```
+
+
+
+### Checking if unique Symbols in the dataset are 500
+
++ There are a total of `r length(unique(newdf$Symbol))` unique symbols in the dataset. 
++ The unique sectors in the dataset are `r head(unique(newdf$GICS))` and the unique symbols are `r head(unique(df$Symbol))`.
+
+### Plot to show number of companies in each GICS sector 
+```{r}
+industry_counts <- df %>%
+  distinct(Symbol, GICS) %>%
+  count(GICS)
+
+ggplot(industry_counts, aes(x = GICS, y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Number of Companies per Industry", x = "Industry (GICS)", y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
++ The bar chart above shows the number of companies in each industry based on the GICS classification. 
++ The "Industrials" sector has the highest number of companies, followed by "Financials", and "Information Technology".
+
+
+### Stacked Bar Plot to show how S&P500 Companies in the GICS Sectors have changed over time
+```{r}
+ggplot(df, aes(x = year(df$Date), fill = GICS)) + geom_bar() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
++ We can observe that the spread of companies across different sectors is relatively concentrated in the following four sectors:
+  - Information Technology
+  - Financials
+  - Health Care
+  - Industrials
+
+### Stacked Bar Plot for each year and constituent sector in S&P500 Index with the total traded Volume
+```{r}
+ggplot(newdf, aes(x = year(newdf$Date), y = Volume, fill = GICS)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
