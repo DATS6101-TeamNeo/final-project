@@ -1,17 +1,13 @@
 ---
-title: "Effect of Major Historical Events on S&P500 Index"
+title: "Summary Paper: Effect of Major Historical Events on Sectors of S&P500 Index"
+author: "Bharat Khandewal, Dinesh Chandra Gaddam, Phanindra Kumar Kalaga, Prudhvi chekuri"
 date: "`r Sys.Date()`"
-output:
-  html_document:
-    code_folding: hide
-    number_sections: false
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
     toc: yes
-    toc_depth: 3
-    toc_float: yes
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
 ---
+
 
 ```{r init, include=FALSE}
 # Load all required packagess
@@ -31,13 +27,57 @@ knitr::opts_chunk$set(warning = F, results = "markup", message = F)
 options(scientific=T, digits = 3) 
 ```
 
+## 1.Abstract
+<span style="  text-align: justify;">
+<p> In this project, we aim to analyze the impact of major historical events on aggregate of the companies belonging to same sector of the S&P 500 index, focusing on the Great Recession, the COVID-19 pandemic, and the Russia-Ukraine conflict. By examining the index's performance before and after these events, we seek to understand how economic downturns, geopolitical crises, and global pandemics influence stock market behavior.
 
+<P>The objective of this project is to explore the relationship between the companies belonging to same sector of the S&P 500 index and these major historical events, providing insights into the index's resilience, volatility, and performance during times of crisis. By analyzing the index's behavior during these critical periods, we aim to uncover patterns, trends, and correlations useful for data-driven decision-making.
 
-<h1>Team Neo Midterm Project</h1>
+<p> Our analysis will focus on key metrics such as volatility, returns, and performance indicators, comparing the companies belonging to same sector of the S&P 500 index's performance during the Great Recession, COVID-19 pandemic, and Russia-Ukraine conflict. By examining these three distinct periods, we aim to identify how the index responds to external shocks, recovers from downturns, and adapts to changing market conditions.
 
+<p> The results of this analysis can provide valuable insights for investors, financial analysts, and policymakers, helping them navigate turbulent market conditions, mitigate risks, and capitalize on opportunities. By understanding the impact of major historical events on the sectors of S&P 500 index, stakeholders can make more informed decisions, optimize their investment strategies, and achieve better outcomes in the stock market.
+</span>
 
-# Step 0: Understanding the dataset
+## 2. Introduction
+<span style=" text-align: justify;">
+<p>
+The S&P 500 is a stock market index that measures the performance of 500 large-cap U.S. companies listed on stock exchanges. An index in finance refers to a statistical measure of change in a securities market. It typically represents a portfolio of securities that represent a particular market or sector. Stock market indices are used to track the performance of a specific group of stocks.overall, The index is market-capitalization -weighted, meaning that larger companies have a greater impact on its value. Now, coming to the S&P 500, it includes companies from diverse industries such as technology, healthcare, financial services, consumer discretionary and industries. The S&P 500 is widely regarded as one of the best benchmarks for the performance of the U.S. stock market.
+</P>
+<P>This project utilizes a dataset from Yahoo finance containing information of all companies stock prices from 2000 to 2024, with the goal of developing Explanatory Data Analysis to effectively distinguish Data observations for analysis. The dataset includes characteristics such as symbol(symbol of company), open, close, High, Volume,GICS sectors and Low. Through exploratory data analysis, we will identify trends and correlations between these features and gather insights. Firstly we will see if the dataset needs any changes like pre processing then we will continue with analysis using t-test's. 
+</P>
+<P>The results produced from this project  can provide valuable insights into market dynamics, risk management, investment strategies, and decision-making, contributing to more informed and successful investing over time.
+</P>
+</span>
 
+## 3. Dataset 
+<span style=" text-align: justify;">
+<p>Our dataset is available as [S&P 500 (^GSPC)](https://finance.yahoo.com/quote/%5EGSPC/history/?guccounter=1) on Yahoo Finance website. All the data is sourced from Yahoo Finance website and covers data from 2003-2023. The dataset consists of 5285 data points (records) and 6 features(columns). Also, there are no null values in the dataset.
+<P>
+<p>Features’ description is given below;
+</span>
+
+<div class="column-definitions">
+  <p><strong>1. Symbol:</strong>The stock symbol of the company in the S&P500 Index.</p>
+  <p><strong>2. Open:</strong> Opening price of the S&P 500 index on a given date.</p>
+  <p><strong>3. Close:</strong> Closing price of the S&P 500 index on a given date.</p>
+  <p><strong>4. High:</strong> The highest price
+  attained by S&P 500 index on a given date.</p>
+  <p><strong>5. Low:</strong> The lowest price observed for the S&P 500 index on a given date.</p>
+  <p><strong>6. Volume:</strong> The total number of shares of all S&P 500 index components traded on a given date.</p>
+  <p><strong>7. Daily Change:</strong> The difference in price between the current day's closing price and the previous day's closing price.</p>
+  <p><strong>8. GICS.Sector:</strong> The Global Industry Classification Standard (GICS) sector of the company.</p>
+</div>
+
+<style>
+  .column-definitions {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background-color: #f7f7f7;
+  }
+</style>
+
+</br>
 + "symbol" - The stock symbol of the company in the S&P500 Index.
 + "date" - The date of the stock price.
 + "open" - The opening price for the specified date(s).
@@ -48,24 +88,16 @@ options(scientific=T, digits = 3)
 + "volume" - The volume for the specified date(s).
 + "GICS.Sector" - The Global Industry Classification Standard (GICS) sector of the company.
 
-We are now analyzing how major historical events impacted the S&P 500 index using constituent data in last 23 years, that is from 2000-2024. Specifically, we will:
+<p>Our research focuses on analyzing how major historical events have influenced the behavior of the S&P 500 index using constituent data spanning the last 23 years, from 2000 to 2024. Our analysis is multifaceted, aiming to provide a comprehensive understanding of these impacts:
 
-- Analyze the number of companies in each sector and how they have changed over time.
+<p>Evolution of Sector Composition: We will analyze the number of companies in each sector and how this composition has changed over time. This analysis will shed light on sectoral trends and shifts in the S&P 500 index constituents.
+<p>Sector Contributions to Index Performance: Through visualization and analysis, we seek to identify which GICS sectors have been primary drivers of the S&P 500 index. Understanding these key sectors can provide insights into the index's overall performance.
+<p>Impact of Events on Industries: We will examine how specific industries within the index respond to major historical events. By evaluating their reactions and how they influence average price levels, we aim to discern patterns and correlations.
+<p>T-tests on Sector Closing Prices: To quantitatively assess the impact of events, we will conduct T-tests to compare the average closing prices of sectors before and after these events. This statistical analysis will help us understand if there are significant differences in sector performance.
+<p>Forecasting the S&P 500 Index: Using ARIMA and LSTM models, we will forecast the S&P 500 index to gauge the effectiveness of these models in predicting its future values. This analysis will provide insights into the predictability of the index.
+<p>Model Evaluation: We will evaluate the performance of the ARIMA and LSTM models using MAE, MSE, and RMSE. These metrics will help us assess the accuracy and reliability of the forecasting models.
 
-- Analyze and visualize to understand which GICS sectors drive the S&P500 Index.
-
-- Examine the specific industries of the index respond to the events and how they effected the average price levels of the industry.
-
-- Perform T-tests to compare the average closing prices of the sectors before and after the events.
-
-- Forecast the S&P 500 index using ARIMA and LSTM model to see how effectively the S&P500 Index can be predicted.
-
-- Evaluate the performance of the ARIMA and LSTM models using Mean Absolute Error (MAE), Mean Squared Error (MSE), and Root Mean Squared Error (RMSE).
-
-
-By looking at prices, returns, correlations, visualizations, and handling outliers, we aim to comprehensively assess how significant historical occurrences influenced the behavior of the S&P 500 index over this 20-year period.
-
-# Step 1: Loading the dataset
+### Step 1: Loading the dataset
 ```{r}
 datasets.url <- "https://drive.usercontent.google.com/download?id=1BqKbN3FEqNcRXeisOPxR_LB8VcSCh7mE&export=download&authuser=0&confirm=t"
 #df <- read.csv("sp500.csv")
@@ -75,7 +107,7 @@ str(df)
 ```
 
 
-# Step 2: Data Preprocessing
+### Step 2: Data Preprocessing
 
 ### Checking for NA values and duplicates
 ```{r}
@@ -83,7 +115,8 @@ str(df)
 sum(is.na(df))
 ```
 
-+ There are `r sum(is.na(df))` missing values in the dataset. This means the dataset is clean and does not require any imputation or removal of data points.
+
+<p>Our dataset, spanning the last 23 years from 2000 to 2024, is remarkably clean, with no missing values (r sum(is.na(df))). This indicates that our data is complete and does not require any imputation or removal of data points. This high data quality enhances the reliability and validity of our analyses, allowing us to draw meaningful insights into the behavior of the S&P 500 index in response to major historical events.
 
 
 ### Dropping unwanted variables extracting numerical variables
@@ -101,10 +134,9 @@ newdf <- newdf[-1,]
 head(newdf)
 str(newdf)
 ```
+<span style="  text-align: justify;">
 
-+ As a part of pre-processing, we have removed the "Adj.Close" column from the dataset as it is not required for our analysis. 
-+ We have also sorted the data by date and calculated the daily returns for each observation.
-+ The GICS column has been converted to a factor variable for better analysis. GICS consists of `r nlevels(newdf$GICS)` levels. 
+<p>In the preprocessing stage of our analysis, we've streamlined our dataset by removing the "Adj.Close" column, which isn't pertinent to our current objectives. We've also organized the data chronologically by date and calculated the daily returns for each entry, essential for our analysis of trends and patterns. Additionally, to enhance our analytical capabilities, we've converted the GICS column into a factor variable. This transformation allows for more effective categorization and exploration of the dataset, considering the r nlevels(newdf$GICS) distinct levels within the GICS classification. These steps lay a solid foundation for our subsequent analyses and modeling efforts.
 
 ```{r}
 # Define the event windows
@@ -132,8 +164,7 @@ df_ukraine <- df[df$Date >= "2022-02-24", ]
 
 ### Checking if unique Symbols in the dataset are 500
 
-+ There are a total of `r length(unique(newdf$Symbol))` unique symbols in the dataset. 
-+ The unique sectors in the dataset are `r head(unique(newdf$GICS))` and the unique symbols are `r head(unique(df$Symbol))`.
+<p> Our dataset comprises r length(unique(newdf$Symbol)) unique symbols, each representing a distinct entity. These symbols are associated with r head(unique(newdf$GICS)) unique sectors, reflecting the diverse industries or segments represented in our data. Understanding the sectors can provide valuable context for our analysis. Additionally, exploring the unique symbols, such as r head(unique(df$Symbol)), can offer insights into the specific companies or entities we're examining, potentially revealing trends or patterns specific to these entities.
 
 ### Plot to show number of companies in each GICS sector 
 ```{r}
@@ -147,9 +178,7 @@ ggplot(industry_counts, aes(x = GICS, y = n)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-+ The bar chart above shows the number of companies in each industry based on the GICS classification. 
-+ The "Industrials" sector has the highest number of companies, followed by "Financials", and "Information Technology".
-
+<p>The bar chart provides a comprehensive overview of the distribution of businesses across different industries, categorized according to the Global Industry Classification Standard (GICS). It illustrates that the "Industrials" sector, encompassing manufacturing companies, boasts the highest number of businesses among all industries. Following closely behind are the "Financials" sector, comprising financial services firms, and the "Information Technology" sector, which includes technology and software companies. This distribution of businesses across industries sheds light on the relative prominence and scale of different sectors within the dataset, offering valuable insights into the composition and structure of the market or dataset being analyzed. Such insights can be instrumental in strategic decision-making, investment analysis, and market research, among other applications.
 
 ### Stacked Bar Plot to show how S&P500 Companies in the GICS Sectors have changed over time
 ```{r}
@@ -157,17 +186,15 @@ ggplot(df, aes(x = year(df$Date), fill = GICS)) + geom_bar() + theme(axis.text.x
 
 ```
 
-+ We can observe that the spread of companies across different sectors is relatively concentrated in the following four sectors:
-  - Information Technology
-  - Financials
-  - Health Care
-  - Industrials
+<p>The analysis indicates that the distribution of businesses among various industries is notably concentrated in four sectors: Financials, Information Technology, Health Care, and Industrials. This concentration suggests that these sectors play a significant role in the overall business landscape, potentially influencing market trends and economic dynamics. Understanding the dynamics within these sectors could provide valuable insights for investors, policymakers, and businesses seeking to navigate and capitalize on market opportunities.
 
 ### Stacked Bar Plot for each year and constituent sector in S&P500 Index with the total traded Volume
 ```{r}
 ggplot(newdf, aes(x = year(newdf$Date), y = Volume, fill = GICS)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 ```
+
+<p>The bar plot illustrates the trading volume trends for different GICS sectors in the S&P 500 index from 2000 to 2024. Overall, the plot reveals fluctuations in trading activity over the years, with some sectors consistently experiencing higher trading volumes than others. Major historical events may have influenced trading patterns, as evidenced by spikes or dips in volume around these events. The analysis provides valuable insights into sector-specific trading behaviors and their contributions to overall market activity, enhancing our understanding of market dynamics and informing investment strategies.
 
 
 # SMART Question 1:  Are there any specific industries that drive the index?
