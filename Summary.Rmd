@@ -100,8 +100,8 @@ The S&P 500 is a stock market index that measures the performance of 500 large-c
 ### Step 1: Loading the dataset
 ```{r}
 datasets.url <- "https://drive.usercontent.google.com/download?id=1BqKbN3FEqNcRXeisOPxR_LB8VcSCh7mE&export=download&authuser=0&confirm=t"
-#df <- read.csv("sp500.csv")
-df <- read.csv(datasets.url)
+df <- read.csv("sp500.csv")
+#df <- read.csv(datasets.url)
 df$Date <- as.Date(df$Date)
 str(df)
 ```
@@ -574,87 +574,6 @@ ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
   theme(legend.position = "right")
 ```
 
-```{r, include=T, results=T}
-# Linear Regression.
-
-# Assuming 'work_df' contains your preprocessed dataset
-# You may need to select appropriate features and split the data into train and test sets
-
-work_df <- data.frame(subset(df, select = c(1, 5)))
-# Feature selection (Example: using lagged values as features)
-for (i in 1:7) {
-  work_df[[paste0('lag', i)]] <- lag(work_df$Close, i)
-}
-work_df <- na.omit(work_df)
-
-# Split data into train and test sets
-train_size <- 0.98
-train_index <- round(nrow(work_df) * train_size)
-train_data <- work_df[1:train_index, ]
-test_data <- work_df[(train_index + 1):nrow(work_df), ]
-
-# Train the linear regression model
-lm_model <- lm(Close ~ lag1 + lag2 + lag3 + lag4 + lag5 + lag6 + lag7, data = train_data)
-
-future_data <- test_data
-
-future_data[, 3:ncol(future_data)] <- 0
-future_data[1, 3:ncol(future_data)] <- rev(tail(train_data$Close, 7))
-
-# Make predictions on test data
-for (i in 1:nrow(future_data)) {
-  future_data$Close[i] <- predict(lm_model, newdata = future_data[i, ])
-  if (i < nrow(future_data)){
-    future_data[i + 1, 3:ncol(future_data)] <- c(future_data$Close[i], future_data[i, 3:(ncol(future_data) - 1)])
-  }
-}
-predictions <- future_data$Close
-
-# Evaluate the model
-errors <- predictions - test_data$Close
-mae <- mean(abs(errors))
-mse <- mean(errors^2)
-rmse <- sqrt(mse)
-
-# Print evaluation metrics
-print(paste("Mean Absolute Error (MAE):", mae))
-print(paste("Mean Squared Error (MSE):", mse))
-print(paste("Root Mean Squared Error (RMSE):", rmse))
-```
-
-
-```{r, include=T, results=T}
-train_df <- data.frame(Date = work_df[1:train_index, "Date"], Value = coredata(work_df[1:train_index, "Close"]), Type = "Train data")
-test_df <- data.frame(Date = work_df[(train_index+1):nrow(work_df), "Date"], Value = coredata(work_df[(train_index+1):nrow(work_df), "Close"]), Type = "Test data")
-forecast_df <- data.frame(Date = work_df[(train_index+1):nrow(work_df), "Date"], Value = coredata(predictions), Type = "Forecast")
-
-# Combine the data frames
-combined_df <- rbind(train_df[train_df$Date > plot_start_date, ], test_df, forecast_df)
-
-# Create the plot
-ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
-  geom_line() +
-  labs(title = "Train, Test, and Forecast Data Plot",
-       x = "Date",
-       y = "Closing Price") +
-  scale_color_manual(values = c("red", "orange", "blue")) +
-  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
-  theme_minimal() +
-  theme(legend.position = "right")
-```
-
-```{r, include=T, results=T}
-ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
-  geom_line() +
-  labs(title = "Train, Test, and Forecast Data Plot",
-       x = "Date",
-       y = "Closing Price") +
-  scale_color_manual(values = c("red", "orange", "blue")) +
-  scale_linetype_manual(values = c("solid", "solid", "solid")) +
-  theme_minimal() +
-  theme(legend.position = "right")
-```
-
 # LSTM Model for Forecasting
 
 ```{r, include=F}
@@ -799,6 +718,49 @@ ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
   scale_linetype_manual(values = c("solid", "solid", "solid")) +
   theme_minimal() +
   theme(legend.position = "right")
+```
+
+
+```{r, include=T, results=T}
+
+great_rec_end <- as.Date("2009-06-30")
+covid_end <- as.Date("2022-01-01")
+russ_uk_end <- as.Date("2023-07-31")
+
+test_size <- 90 #days
+
+gr_test_data <- train_data[train_data$Date > great_rec_end & train_data$Date <= great_rec_end + test_size, ]
+covid_test_data <- train_data[train_data$Date > covid_end & train_data$Date <= covid_end + test_size, ]
+russ_uk_test_data <- test_data[test_data$Date > russ_uk_end & test_data$Date <= russ_uk_end + test_size, ]
+
+plot_events <- function(test_data, event_name) {
+  
+  predictions <- model %>% predict(do.call(cbind, as.list(test_data[, 3:9])))
+  
+  test_data <- xts(test_data$Close, order.by = as.Date(test_data$Date))
+  
+  # Convert the time series data to data frames
+  test_df <- data.frame(Date = index(test_data), Value = coredata(test_data), Type = "Test data")
+  forecast_df <- data.frame(Date = index(test_data), Value = coredata(predictions), Type = "Forecast")
+  
+  # Combine the data frames
+  combined_df <- rbind(test_df, forecast_df)
+  # Create the plot
+  ggplot(combined_df, aes(x = Date, y = Value, color = Type, linetype = Type)) +
+    geom_line() +
+    labs(title = paste("Test, and Forecast (Linear Regression) Plot for", event_name),
+         x = "Date",
+         y = "Closing Price") +
+    scale_color_manual(values = c("red", "orange")) +
+    scale_linetype_manual(values = c("solid", "dashed")) +
+    theme_minimal() +
+    theme(legend.position = "right")
+}
+
+plot_events(gr_test_data, "Great Recession")
+plot_events(covid_test_data, "Covid-19 Pandemic")
+plot_events(russ_uk_test_data, "Russia-Ukraine Invasion")
+
 ```
 
 <p>In our comparative analysis of forecasting models for the S&P500 index, we found that the Long Short-Term Memory (LSTM) model outperforms the AutoRegressive Integrated Moving Average (ARIMA) model based on key metrics such as Mean Absolute Error (MAE), Mean Squared Error (MSE), and Root Mean Squared Error (RMSE). The LSTM model's superior performance can be attributed to its ability to capture complex sequential patterns in the data, which are not effectively captured by the ARIMA model.
