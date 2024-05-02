@@ -1,0 +1,3 @@
+# Ignore .Rdata and .Rhistory files
+*.Rdata
+*.Rhistory

@@ -197,7 +197,9 @@ ggplot(newdf, aes(x = year(newdf$Date), y = Volume, fill = GICS)) + geom_bar(sta
 <p>The bar plot illustrates the trading volume trends for different GICS sectors in the S&P 500 index from 2000 to 2024. Overall, the plot reveals fluctuations in trading activity over the years, with some sectors consistently experiencing higher trading volumes than others. Major historical events may have influenced trading patterns, as evidenced by spikes or dips in volume around these events. The analysis provides valuable insights into sector-specific trading behaviors and their contributions to overall market activity, enhancing our understanding of market dynamics and informing investment strategies.
 
 
-### SMART Question 1:  Are there any specific industries that drive the index?
+# SMART Question 1:  Are there any specific industries that drive the index?
+
+### Identifying Impact of various sectors on closing price of the index
 
 ```{r, include=TRUE, results=T}
 #checking which industries drive the index
@@ -213,7 +215,7 @@ print(anova_result)
 # Alternatively, you can also examine the coefficients
 summary(model)
 ```
-
+### Plot of the bars with respect to sectors estimated values for Closing price
 
 ```{r, include=TRUE,results=T}
 # Create a data frame with coefficients and sectors
@@ -238,6 +240,7 @@ ggplot(data, aes(x = sectors, y = coefficients)) +
 
 <p>Overall, the ANOVA and coefficients tables, along with the residuals analysis, provide valuable insights into the relationship between the GICS sectors and the closing price of the stock, aiding investors and analysts in understanding the factors influencing stock prices and making informed decisions.
 
+### Identifying Impact of various sectors on Volume of stocks traded from that sectors
 
 ```{r, include=TRUE, results=T}
 #checking which industries drive the index
@@ -253,6 +256,7 @@ print(anova_result)
 # Alternatively, you can also examine the coefficients
 summary(model1)
 ```
+### Plot of the bars with respect to sectors estimated values for Volume
 
 ```{r, include=TRUE,results=T}
 # Create a data frame with coefficients and sectors
