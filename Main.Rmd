@@ -67,9 +67,9 @@ By looking at prices, returns, correlations, visualizations, and handling outlie
 
 # Step 1: Loading the dataset
 ```{r}
-#datasets.url <- "https://drive.usercontent.google.com/download?id=1BqKbN3FEqNcRXeisOPxR_LB8VcSCh7mE&export=download&authuser=0&confirm=t"
-df <- read.csv("sp500.csv")
-#df <- read.csv(datasets.url)
+datasets.url <- "https://drive.usercontent.google.com/download?id=1BqKbN3FEqNcRXeisOPxR_LB8VcSCh7mE&export=download&authuser=0&confirm=t"
+# df <- read.csv("sp500.csv")
+df <- read.csv(datasets.url)
 df$Date <- as.Date(df$Date)
 str(df)
 ```
